@@ -128,39 +128,43 @@ void rasterize_triangle(driver_state& state, const data_geometry* in[3])
 //    std::cout<< out[2].gl_Position[0] <<std::endl;
 //    std::cout<< out[2].gl_Position[1] <<std::endl;
 //    std::cout<< "\n";
-    int Ax = (state.image_width/2.0)*in[0]->gl_Position[0] + (state.image_width/2.0) - (0.5);
-    int Ay = (state.image_height/2.0)*in[0]->gl_Position[1] + (state.image_height/2.0) - (0.5);
+    int Ax = state.image_width/2.0 * in[0]->gl_Position[0] + (state.image_width/2.0) - (0.5);
+    int Ay = state.image_height/2.0 * in[0]->gl_Position[1] + (state.image_height/2.0) - (0.5);
     
-    int Bx = (state.image_width/2.0)*in[1]->gl_Position[0] + (state.image_width/2.0) - (0.5);
-    int By = (state.image_height/2.0)*in[1]->gl_Position[1] + (state.image_height/2.0) - (0.5);
+    int Bx = state.image_width/2.0 * in[1]->gl_Position[0] + (state.image_width/2.0) - (0.5);
+    int By = state.image_height/2.0 * in[1]->gl_Position[1] + (state.image_height/2.0) - (0.5);
     
-    int Cx = (state.image_width/2.0)*in[2]->gl_Position[0] + (state.image_width/2.0) - (0.5);
-    int Cy = (state.image_height/2.0)*in[2]->gl_Position[1] + (state.image_height/2.0) - (0.5);
+    int Cx = state.image_width/2.0 * in[2]->gl_Position[0] + (state.image_width/2.0) - (0.5);
+    int Cy = state.image_height/2.0 * in[2]->gl_Position[1] + (state.image_height/2.0) - (0.5);
     
     int min_x = 0;
     int max_x = 0;
     int min_y = 0;
     int max_y = 0;
     
-    min_x = std::min(Ax,Bx);
+    min_x = std::min(0,Ax);
+    min_x = std::min(min_x,Bx);
     min_x = std::min(min_x,Cx);
     
-    max_x = std::max(Ax,Bx);
+    max_x = std::max(0,Ax);
+    max_x = std::max(max_x,Bx);
     max_x = std::max(max_x,Cx);
     
-    min_y = std::min(Ay,By);
+    min_y = std::min(0,Ay);
+    min_y = std::min(min_y,By);
     min_y = std::min(min_y,Cy);
     
-    max_y = std::max(Ay,By);
+    max_y = std::max(0,Ay);
+    max_y = std::max(max_y,By);
     max_y = std::max(max_y,Cy);
     
  
     float abc = 0.5 * ((Bx*Cy - Cx*By) - (Ax*Cy - Cx*Ay) + (Ax*By - Bx*Ay));
     //std::cout << abc <<std::endl;
     
-    for(int i = min_x; i < max_x; i++)
+    for(int i = 0; i < state.image_width; i++)
     {
-      for(int j = min_y; j < max_y; j++)
+      for(int j = 0; j < state.image_height; j++)
       {
         float pbc = 0.5 * ((Bx*Cy - Cx*By) - (i*Cy - Cx*j) + (i*By - Bx*j));
         float apc = 0.5 * ((i*Cy - Cx*j) - (Ax*Cy - Cx*Ay) + (Ax*j - i*Ay));
@@ -217,9 +221,9 @@ void rasterize_triangle(driver_state& state, const data_geometry* in[3])
             int blue = 255 * dOut.output_color[2];
             
             //std::cout<< red <<std::endl;
-  
-      			state.image_color[i+j*state.image_width] = make_pixel(red, green, blue);
             state.image_depth[i + j * state.image_width] = zBuffer;
+      			state.image_color[i+j*state.image_width] = make_pixel(red, green, blue);
+            
           }
     		}
       }
