@@ -29,6 +29,11 @@ void initialize_render(driver_state& state, int width, int height)
     {
       state.image_color[i] = make_pixel(0,0,0);
 		}
+    for(int i = 0; i < width*height; i++)
+    {
+      state.image_depth[i] = 2.0;
+    }
+   
     //delete state.image_color;
     //std::cout<<"TODO: allocate and initialize state.image_color and state.image_depth."<<std::endl;
 }
@@ -65,14 +70,17 @@ void render(driver_state& state, render_type type)
             state.vertex_shader(v1,g1,state.uniform_data);
             state.vertex_shader(v2,g2,state.uniform_data);
             
-            g0.gl_Position /= g0.gl_Position[3];
-            g1.gl_Position /= g1.gl_Position[3];
-            g2.gl_Position /= g2.gl_Position[3];
+            for(int j = 0; j < 3; j++)
+            {
+              g0.gl_Position[j] /= g0.gl_Position[3];
+              g1.gl_Position[j] /= g1.gl_Position[3];
+              g2.gl_Position[j] /= g2.gl_Position[3];
+            }
             
             geo[0] = &g0;
             geo[1] = &g1;
             geo[2] = &g2;
-            
+  
             rasterize_triangle(state,geo);
         }
       }
@@ -170,37 +178,49 @@ void rasterize_triangle(driver_state& state, const data_geometry* in[3])
           data_fragment frag;
           float frag_data[MAX_FLOATS_PER_VERTEX];
           frag.data = frag_data;
-
-          for(int k = 0; k < state.floats_per_vertex; k++)
+          
+          float zBuffer = alpha * in[0]->gl_Position[2]  + beta * in[1]->gl_Position[2] + gamma * in[2]->gl_Position[2];
+          if(zBuffer < state.image_depth[i + j * state.image_width])
           {
-            switch(state.interp_rules[k])
+            for(int k = 0; k < state.floats_per_vertex; k++)
             {
-              case interp_type::flat:
-                //frag_data[k] = out[0].data[k];
-                //std::cout<< frag_data[k] <<std::endl; 
-                break;
-              case interp_type::smooth:
-                break;
-              case interp_type::noperspective:
-                break;
-              case interp_type::invalid:
-                break;
+              float p = alpha / in[0]->gl_Position[3] + beta / in[1]->gl_Position[3] + gamma / in[2]->gl_Position[3];
+              float a = alpha / (in[0]->gl_Position[3] * p);
+              float b = beta / (in[1]->gl_Position[3] * p);
+              float c = gamma / (in[2]->gl_Position[3] * p);
+              
+              switch(state.interp_rules[k])
+              {
+                case interp_type::flat:
+                  frag_data[k] = in[0]->data[k];
+                  //std::cout<< frag_data[k] <<std::endl; 
+                  break;
+                case interp_type::smooth:
+                  frag_data[k] = (a * in[0]->data[k] + b * in[1]->data[k] + c * in[2]->data[k]);
+                  break;
+                case interp_type::noperspective:
+                  frag_data[k] = (alpha * in[0]->data[k] + beta * in[1]->data[k] + gamma * in[2]->data[k]);
+                  break;
+                case interp_type::invalid:
+                  break;
+              }
             }
+            
+            
+            
+            //call fragment shader
+            data_output dOut;
+            state.fragment_shader(frag, dOut,state.uniform_data); 
+            //std::cout<< color.output_color <<std::endl;
+            int red = 255 * dOut.output_color[0];
+            int green = 255 * dOut.output_color[1];
+            int blue = 255 * dOut.output_color[2];
+            
+            //std::cout<< red <<std::endl;
+  
+      			state.image_color[i+j*state.image_width] = make_pixel(red, green, blue);
+            state.image_depth[i + j * state.image_width] = zBuffer;
           }
-          
-          
-          
-          //call fragment shader
-          data_output dOut;
-          state.fragment_shader(frag, dOut,state.uniform_data); 
-          //std::cout<< color.output_color <<std::endl;
-          int red = 255 * dOut.output_color[0];
-          int green = 255 * dOut.output_color[1];
-          int blue = 255 * dOut.output_color[2];
-          
-          //std::cout<< red <<std::endl;
-
-    			state.image_color[i+j*state.image_width] = make_pixel(red, green, blue);
     		}
       }
     }
