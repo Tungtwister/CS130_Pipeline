@@ -87,10 +87,130 @@ void render(driver_state& state, render_type type)
       }
             break;
       case render_type::indexed:
+      {
+        for(int i = 0; i < 3*state.num_triangles; i += 3)
+        {
+            const data_geometry * geo[3];
+            data_geometry g0,g1,g2;
+            data_vertex v0,v1,v2;
+            
+            g0.data = &state.vertex_data[state.index_data[i] * state.floats_per_vertex];
+            g1.data = &state.vertex_data[state.index_data[i+1] * state.floats_per_vertex];
+            g2.data = &state.vertex_data[state.index_data[i+2] * state.floats_per_vertex];
+  
+            v0.data = &state.vertex_data[state.index_data[i] * state.floats_per_vertex];
+            v1.data = &state.vertex_data[state.index_data[i+1] * state.floats_per_vertex];
+            v2.data = &state.vertex_data[state.index_data[i+2] * state.floats_per_vertex];
+            
+            state.vertex_shader(v0,g0,state.uniform_data);
+            state.vertex_shader(v1,g1,state.uniform_data);
+            state.vertex_shader(v2,g2,state.uniform_data);
+            
+//            std::cout<< g0.gl_Position[0] << " " << g0.gl_Position[1] << " " << g0.gl_Position[2] <<std::endl;
+//            std::cout<< g1.gl_Position[0] << " " << g1.gl_Position[1] << " " << g1.gl_Position[2] <<std::endl;
+//            std::cout<< g2.gl_Position[0] << " " << g2.gl_Position[1] << " " << g2.gl_Position[2] <<std::endl;
+            
+            for(int j = 0; j < 3; j++)
+            {
+              g0.gl_Position[j] /= g0.gl_Position[3];
+              g1.gl_Position[j] /= g1.gl_Position[3];
+              g2.gl_Position[j] /= g2.gl_Position[3];
+            }
+            
+            geo[0] = &g0;
+            geo[1] = &g1;
+            geo[2] = &g2;
+  
+            rasterize_triangle(state,geo);
+        }
+      }
             break;
       case render_type::fan:
+      {
+        for(int i = 0; i < state.num_vertices * state.floats_per_vertex - 2*state.floats_per_vertex; i += state.floats_per_vertex)
+        {
+            const data_geometry * geo[3];
+            data_geometry g0,g1,g2;
+            data_vertex v0,v1,v2;
+            
+            g0.data = &state.vertex_data[0];
+            g1.data = &state.vertex_data[i+ state.floats_per_vertex];
+            g2.data = &state.vertex_data[i + (state.floats_per_vertex * 2)];
+  
+            v0.data = &state.vertex_data[0];
+            v1.data = &state.vertex_data[i + state.floats_per_vertex];
+            v2.data = &state.vertex_data[i + (state.floats_per_vertex * 2)];
+            
+            state.vertex_shader(v0,g0,state.uniform_data);
+            state.vertex_shader(v1,g1,state.uniform_data);
+            state.vertex_shader(v2,g2,state.uniform_data);
+            
+            for(int j = 0; j < 3; j++)
+            {
+              g0.gl_Position[j] /= g0.gl_Position[3];
+              g1.gl_Position[j] /= g1.gl_Position[3];
+              g2.gl_Position[j] /= g2.gl_Position[3];
+            }
+            
+            geo[0] = &g0;
+            geo[1] = &g1;
+            geo[2] = &g2;
+  
+            rasterize_triangle(state,geo);
+        }
+      }
             break;
       case render_type::strip:
+      {
+        for(int i = 0; i < state.num_vertices * state.floats_per_vertex  - 2*state.floats_per_vertex; i += state.floats_per_vertex)
+        {
+            const data_geometry * geo[3];
+            data_geometry g0,g1,g2;
+            data_vertex v0,v1,v2;
+            int odd = i % 2;
+      
+            if(odd == 0)
+            {
+              g0.data = &state.vertex_data[i];
+              g1.data = &state.vertex_data[i+ state.floats_per_vertex];
+              g2.data = &state.vertex_data[i + (state.floats_per_vertex * 2)];
+    
+              v0.data = &state.vertex_data[i];
+              v1.data = &state.vertex_data[i + state.floats_per_vertex];
+              v2.data = &state.vertex_data[i + (state.floats_per_vertex * 2)];
+            }
+            else
+            {
+              g1.data = &state.vertex_data[i];
+              g0.data = &state.vertex_data[i+ state.floats_per_vertex];
+              g2.data = &state.vertex_data[i + (state.floats_per_vertex * 2)];
+    
+              v1.data = &state.vertex_data[i];
+              v0.data = &state.vertex_data[i + state.floats_per_vertex];
+              v2.data = &state.vertex_data[i + (state.floats_per_vertex * 2)];
+            }
+            
+            
+            state.vertex_shader(v0,g0,state.uniform_data);
+            state.vertex_shader(v1,g1,state.uniform_data);
+            state.vertex_shader(v2,g2,state.uniform_data);
+            
+            //std::cout<< g0.gl_Position[0] << " " << g0.gl_Position[1] << " " << g0.gl_Position[2] <<std::endl;
+            
+            for(int j = 0; j < 3; j++)
+            {
+              g0.gl_Position[j] /= g0.gl_Position[3];
+              g1.gl_Position[j] /= g1.gl_Position[3];
+              g2.gl_Position[j] /= g2.gl_Position[3];
+            }
+            
+            geo[0] = &g0;
+            geo[1] = &g1;
+            geo[2] = &g2;
+  
+            rasterize_triangle(state,geo);
+        }
+      }
             break;
       default: 
             break;
